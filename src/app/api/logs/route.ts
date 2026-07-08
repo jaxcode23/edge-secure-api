@@ -38,6 +38,7 @@ export async function GET(): Promise<Response> {
 }
 
 export async function POST(request: Request): Promise<Response> {
+  console.log("POST handler reached");
   const contentLength = request.headers.get("content-length");
   if (contentLength) {
     const size = parseInt(contentLength, 10);
