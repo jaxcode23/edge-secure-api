@@ -1,3 +1,10 @@
 import { Redis } from "@upstash/redis";
 
-export const redis = Redis.fromEnv();
+let redisInstance: Redis | null = null;
+
+export function getRedis(): Redis {
+  if (!redisInstance) {
+    redisInstance = Redis.fromEnv();
+  }
+  return redisInstance;
+}

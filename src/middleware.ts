@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { redis } from "@/lib/redis";
+import { getRedis } from "@/lib/redis";
 
 export const config = {
   matcher: "/api/:path*",
@@ -58,6 +58,11 @@ function applySecurityHeaders(response: NextResponse): void {
 }
 
 export async function middleware(request: NextRequest): Promise<NextResponse> {
+  console.log("[RateLimiter] middleware invoked");
+
+  const url = request.nextUrl.pathname;
+  console.log("[RateLimiter] URL:", url);
+
   const corsResponse = checkCors(request);
   if (corsResponse) {
     return corsResponse;
@@ -65,19 +70,29 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 
   const ip = getClientIp(request);
   const key = `ratelimit:${ip}`;
+  console.log("[RateLimiter] Client IP:", ip);
+  console.log("[RateLimiter] Key:", key);
 
   try {
+    const redis = getRedis();
+    console.log("[RateLimiter] Redis instance obtained");
     const count = await redis.incr(key);
+    console.log("[RateLimiter] Redis count:", count, "for key:", key);
     if (count === 1) {
       await redis.expire(key, RATE_LIMIT_WINDOW);
+      console.log("[RateLimiter] EXPIRE set for key:", key);
     }
     if (count > RATE_LIMIT_MAX) {
+      console.log("[RateLimiter] Limit exceeded — returning 429 for key:", key);
       return new NextResponse(RATE_LIMIT_ERROR, {
         status: 429,
         headers: { "content-type": "application/json" },
       });
     }
-  } catch {
+  } catch (error) {
+    console.error("[RateLimiter] Redis error:", error);
+    console.log("[RateLimiter] error constructor:", (error as any)?.constructor?.name);
+    console.log("[RateLimiter] error stack:", (error as any)?.stack);
     // fail open — rate limiter unavailable, allow request through
   }
 
