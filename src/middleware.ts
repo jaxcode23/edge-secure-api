@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getRedis } from "@/lib/redis";
 
 export const config = {
-  matcher: "/api/:path*",
+  matcher: ['/api/((?!debug).*)'],
 };
 
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS ?? "")
